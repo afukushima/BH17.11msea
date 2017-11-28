@@ -1,0 +1,87 @@
+---
+title: "Pathway mapping Using the AtMetExpress overview in Wikipathways format"
+author: "Atsushi Fukushima <atsushi.fukushima@riken.jp>"
+date: "2016/09/21 (WED)"
+output: html_document
+---
+
+```{r setup}
+library(rWikiPathways)
+```
+# Set up
+Install [rWikipathways](https://github.com/egonw/rwikipathways) package. Please look at the first example code from an excellent blog <https://www.r-bloggers.com/using-the-wikipathways-api-in-r/>.
+
+
+# Pathway mapping Using the AtMetExpress overview in Wikipathways format
+
+This is an example document for pathway mapping using metabolome data. 
+Please see the WikiPathways API in R <http://www.wikipathways.org/index.php/Help:WikiPathways_Webservice/API>.
+
+## Listing organisms and pathways in the Wikipathways is performed with: 
+```{r list of organisms and pathways}
+organisms <- listOrganisms()
+head(organisms)
+
+pathways <- listPathways()
+head(pathways)
+```
+
+## Focussing on Arabidopsis's pathways
+
+You can also get the info, for example:
+
+```{r Arabidopsis pathways}
+araPathways <- listPathways(organisms[2])
+head(araPathways)
+```
+
+We focus on the pathway of AtMetExpress overview ([WP3622](http://www.wikipathways.org/index.php/Pathway:WP3622)). You can access to the GPML source file for the pathway:
+```{r AtMetExpress overview}
+gpml <- getPathway(pathway="WP3622")
+info <- getPathwayInfo(pathway="WP3622")
+info
+```
+
+Most use will likely be via database identifiers for metabolites, called Xrefs (also check out the R package for BridgeDb <https://github.com/BiGCAT-UM/bridgedb-r>). Please check currently available system code <http://developers.pathvisio.org/wiki/DatabasesMapps#Supporteddatabasesystems>. Now we will get HMDB-ids:
+
+```{r metabolite identifiers}
+xrefs <- getXrefList(pathway="WP3622", systemCode="Ch")
+```
+
+When gettng colored-pathways from the database, we specify the "graphId"<http://www.wikipathways.org/index.php/Help:WikiPathways_Webservice/API#GraphId>. So, you can get the info by findPathwaysByXref() function.
+
+```{r findPathwaysByXref() function}
+pathways <- findPathwaysByXref(xrefs[1], systemCode="Ch")  ## using HMDB <http://www.hmdb.ca/>
+pathways[grep("WP3622", pathways$id),]
+
+pathways.all <- findPathwaysByXref(xrefs, systemCode="Ch")
+target.graphId <- pathways.all[grep("WP3622", pathways.all$id),]$graphid
+target.graphId <- as.character(target.graphId)
+```
+
+As an example of colored pathways created with the rWikipathways package, you can get the visualization of sucrose and phytol.:
+```{r visualization}
+svg = getColoredPathway(pathway="WP3622",
+                        graphId=c("be281","dfaae"),
+                        color=c("FF0000", "00FF00"));
+writeLines(svg, "WP3622_pathway1.svg")
+```
+
+We focus on plant polyamines like Ornithine (HMDB00214), Putrescine (HMDB01414), and Spermidine (HMDB01257).
+```{r polyamnes}
+poly <- c("HMDB00214", "HMDB01414", "HMDB01257")
+poly.all <- findPathwaysByXref(poly, systemCode="Ch")
+poly.graphId <- as.character( poly.all[grep("WP3622", poly.all$id),]$graphid )
+
+
+poly.svg = getColoredPathway(pathway="WP3622",
+                        graphId=poly.graphId,
+                        color="FF0000");
+writeLines(poly.svg, "WP3622_poly.svg")
+```
+<embed src="./WP3622_poly.svg" type="image/svg+xml" />
+
+
+If you use the rWikipathways package in your research, please cite the below WikiPathways paper as follows:
+
+[Kutmon, M., Riutta, A., Nunes, N., Hanspers, K., Willighagen, E. L., Bohler, A., Mélius, J., Waagmeester, A., Sinha, S. R., Miller, R., Coort, S. L., Cirillo, E., Smeets, B., Evelo, C. T., Pico, A. R.,  WikiPathways: capturing the full diversity of pathway knowledge. Nucleic Acids Research 44(Database issue): D488–D494 (2016)](http://dx.doi.org/10.1093/nar/gkv1024)

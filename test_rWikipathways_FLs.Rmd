@@ -1,0 +1,91 @@
+---
+title: "Pathway mapping Using the detailed Flavonoid pathway in Wikipathways format"
+author: "Atsushi Fukushima <atsushi.fukushima@riken.jp>"
+date: "2016/09/21 (WED)"
+output: html_document
+---
+
+```{r setup}
+library(rWikiPathways)
+```
+# Set up
+Install [rWikipathways](https://github.com/egonw/rwikipathways) package. Please look at the first example code from an excellent blog <https://www.r-bloggers.com/using-the-wikipathways-api-in-r/>.
+
+
+# Pathway mapping Using the detailed flavonoid pathway (WP3620) in Wikipathways format
+
+This is an example document for pathway mapping using metabolome data. 
+Please see the [WikiPathways API](http://www.wikipathways.org/index.php/Help:WikiPathways_Webservice/API) in R.
+
+## Listing organisms and pathways in the Wikipathways is performed with: 
+```{r list of organisms and pathways}
+organisms <- listOrganisms()
+head(organisms)
+
+pathways <- listPathways()
+head(pathways)
+```
+
+## Focussing on Arabidopsis's pathways
+
+You can also get the info, for example:
+
+```{r Arabidopsis pathways}
+araPathways <- listPathways(organisms[2])
+head(araPathways)
+```
+
+We focus on the pathway of the detailed flavonoid pathway ([WP3620](http://www.wikipathways.org/index.php/Pathway:WP3620)) in Arabidopsis. You can access to the GPML source file for the pathway:
+```{r flavonoid pathway}
+gpml <- getPathway(pathway="WP3620")
+info <- getPathwayInfo(pathway="WP3620")
+info
+```
+
+Most use will likely be via database identifiers for metabolites, called Xrefs (also check out the [R package for BridgeDb](https://github.com/BiGCAT-UM/bridgedb-r)). Please check currently available [system code](http://developers.pathvisio.org/wiki/DatabasesMapps#Supporteddatabasesystems). Now we will get [KNApSAcK-ids](http://kanaya.naist.jp/KNApSAcK/) (here, systemCode="Cks"):
+
+```{r metabolite identifiers}
+xrefs.Cks <- getXrefList(pathway="WP3620", systemCode="Cks")
+```
+
+When gettng colored-pathways from the database, we specify the ["graphId"](http://www.wikipathways.org/index.php/Help:WikiPathways_Webservice/API#GraphId). So, you can get the info by findPathwaysByXref() function.
+
+```{r findPathwaysByXref() function}
+pathways <- findPathwaysByXref(xrefs.Cks[1], systemCode="Cks")  ## using KNApSAcK <http://kanaya.naist.jp/KNApSAcK/>
+pathways[grep("WP3620", pathways$id),]
+
+pathways.all <- findPathwaysByXref(xrefs.Cks, systemCode="Cks")
+target.graphId <- pathways.all[grep("WP3620", pathways.all$id),]$graphid
+target.graphId <- as.character(target.graphId)
+```
+
+As an example of colored pathways created with the rWikipathways package, you can get the visualization of some flavonoids.:
+```{r visualization}
+svg = getColoredPathway(pathway="WP3620",
+                        graphId=c("f1f5d", "d5954", "bb888", "d7ff8", "c91b1"),
+                        color="FF0000");
+writeLines(svg, "WP3622_FL1.svg")
+```
+
+We focus on plant anthocyanins like A5 (C00007657), A6 (C00007658), A7 (C00007660), A8 (C00007659), A9 (C00006838), and A10 (C00007661). Regarding these abbreviations, see the review by [Saito et al. (2013)](http://www.ncbi.nlm.nih.gov/pubmed/23473981).
+
+A3 (C00006836).
+```{r cyanidine}
+fls <- c("C00007657", "C00007659", "C00006838",
+         "C00007661", "C00007658", "C00007660",
+         "C00006836")
+fls.all <- findPathwaysByXref(fls, systemCode="Cks")
+fls.graphId <- as.character( fls.all[grep("WP3620", fls.all$id),]$graphid )
+
+
+fls.svg = getColoredPathway(pathway="WP3620",
+                        graphId=fls.graphId,
+                        color="FF0000");
+writeLines(fls.svg, "WP3620_antho.svg")
+```
+
+
+
+If you use the rWikipathways package in your research, please cite the below WikiPathways paper as follows:
+
+[Kutmon, M., Riutta, A., Nunes, N., Hanspers, K., Willighagen, E. L., Bohler, A., Mélius, J., Waagmeester, A., Sinha, S. R., Miller, R., Coort, S. L., Cirillo, E., Smeets, B., Evelo, C. T., Pico, A. R.,  WikiPathways: capturing the full diversity of pathway knowledge. Nucleic Acids Research 44(Database issue): D488–D494 (2016)](http://dx.doi.org/10.1093/nar/gkv1024)
